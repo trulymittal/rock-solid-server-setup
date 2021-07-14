@@ -1,0 +1,35 @@
+[
+  {
+    "id": "github-push",
+    "execute-command": "/home/killer/webhooks/redeploy.sh",
+    "command-working-directory": "/home/killer/application",
+    "response-message": "Deployed...",
+    "include-command-output-in-response": true,
+    "include-command-output-in-response-on-error": true,
+    "parse-parameters-as-json": true,
+    "trigger-rule": {
+      "and": [
+        {
+          "match": {
+            "type": "payload-hmac-sha256",
+            "secret": "SOME_SUPER_SECRET_FROM_GITHUB_WHILE_CREATING_WEBHOOK",
+            "parameter": {
+              "source": "header",
+              "name": "X-Hub-Signature-256"
+            }
+          }
+        },
+        {
+          "match": {
+            "type": "value",
+            "value": "refs/heads/master",
+            "parameter": {
+              "source": "payload",
+              "name": "ref"
+            }
+          }
+        }
+      ]
+    }
+  }
+]
