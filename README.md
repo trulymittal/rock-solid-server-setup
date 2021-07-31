@@ -96,6 +96,39 @@ dnf update -y
 
 It will really take sometime, so sit back relax and have a cup of tea ☕️, (Note: I like tea but you can also have coffee or a beer).
 
+### Install packages using **dnf**
+
+```bash
+dnf install curl vim git wget '@Development tools' nmap net-tools
+```
+
+Once again, it will take sometime, so sit back relax and have a second cup of tea ☕️, (Note: I like tea but you can also have coffee or a beer).
+
+### Adding EPEL to CentOS 8
+
+```bash
+dnf install epel-release
+dnf upgrade
+```
+
+### Start and install automatic updates
+
+```bash
+dnf install dnf-automatic -y
+systemctl enable --now dnf-automatic.timer
+systemctl list-timers *dnf-*
+```
+
+### Install Snapd from
+
+(https://snapcraft.io/docs/installing-snapd)
+
+```bash
+sudo dnf install snapd -y
+sudo systemctl enable --now snapd.socket
+sudo ln -s /var/lib/snapd/snap /snap
+```
+
 ### Setup sudo user with root priveleges
 
 - create a User with your choice of USERNAME, we will make this user have **sudo** access
@@ -191,27 +224,21 @@ Reload SSHD service
 systemctl reload sshd
 ```
 
-### Install packages using **dnf**
+Optionally, for this new user, create ssh public/private to be used on github for private repos.
 
 ```bash
-sudo dnf install curl vim git wget '@Development tools' firewalld nmap net-tools
+# run this command when loggin into ssh with this new user only
+ssh-keygen -t ed25519
 ```
 
-Once again, it will take sometime, so sit back relax and have a second cup of tea ☕️, (Note: I like tea but you can also have coffee or a beer).
-
-### Adding EPEL to CentOS 8
+### (Optional) Delete other user **centos**
 
 ```bash
-sudo dnf install epel-release
-sudo dnf upgrade
-```
+userdel centos
 
-### Start and install automatic updates
-
-```bash
-dnf install dnf-automatic -y
-systemctl enable --now dnf-automatic.timer
-systemctl list-timers *dnf-*
+# You can also delete that user's home directory and mail spool by using the -r flag with the command
+# recommended
+userdel -r centos
 ```
 
 ### (Optional) Install **fish** terminal
@@ -225,16 +252,6 @@ cat /etc/shells
 # change shell to fish instead of bash
 sudo usermod --shell $(which fish) USERNAME
 # exit and ssh again, to use fish shell
-```
-
-### Install Snapd from
-
-(https://snapcraft.io/docs/installing-snapd)
-
-```bash
-sudo dnf install snapd -y
-sudo systemctl enable --now snapd.socket
-sudo ln -s /var/lib/snapd/snap /snap
 ```
 
 ### Install Nodejs
@@ -263,22 +280,59 @@ npm --version
 sudo snap install node --classic --channel=14
 ```
 
-<!-- Todo: -->
+### Setup PM2 (process manager for node applications)
 
-- Optionally, for this current user, create ssh public/private to be used on github for private repos.
+Install and run the startup script
 
 ```bash
-ssh-keygen -t ed25519
+# ssh as current USER not as root
+sudo npm install -g pm2
+```
+
+Either use `pm2 startup` and follow the instructions
+OR use this script below
+
+Start and enable pm2 as a service
+
+```bash
+sudo env PATH=$PATH:/usr/local/bin pm2 startup systemd -u USERNAME --hp /home/USERNAME
+```
+
+Check status of pm2
+
+```
+systemctl status pm2-USERNAME
+```
+
+IMPORTANT NOTE: If the Active status is not **Active: active (running)** and is something like _failed_ or _activating_ , then execute the following commands in order (just for info, this is related to SELINUX), and everything should be fine, else if still it creates a problem you can make an issue in this repo only after trying out the fix.
+
+```bash
+# Change to root user
+sudo su
+# The following start command will timeout
+systemctl start pm2-USERNAME
+# Then do this
+ausearch -c 'systemd' --raw | audit2allow -M my-systemd
+semodule -i my-systemd.pp
+# NOTE: this is NOT a mistake, it has to be done twice
+systemctl start pm2-USERNAME
+# Again, the above start command will timeout
+ausearch -c 'systemd' --raw | audit2allow -M my-systemd
+semodule -i my-systemd.pp
+systemctl start pm2-USERNAME
+# Finally the above start command will start the pm2 service, and verify it with
+systemctl status pm2-USERNAME
+# sudo reboot
 ```
 
 ### Start the Nodejs application
 
 - Login as the user created above with root privilages
 
-- Installing npm global packages
+- Install yarn global packages
 
 ```
-npm install -g pm2 yarn
+sudo npm install -g yarn
 ```
 
 - Starting the Nodejs application
@@ -295,42 +349,6 @@ pm2 save
 
 - list application using `pm2 monit`
 
-- Start and enable pm2 as a service
-
-  Either use `pm2 startup` and follow the instructions
-  OR use this script below
-
-  ```bash
-  sudo env PATH=$PATH:/usr/local/bin pm2 startup systemd -u USERNAME --hp /home/USERNAME
-
-  ```
-
-  - Check status of pm2
-
-```
-systemctl status pm2-USERNAME
-```
-
-IMPORTANT NOTE: If the Active status is not **Active: active (running)** and is something like _failed_ or _activating_ , then execute the following commands in order (just for info, this is related to SELINUX), and everything should be fine, else if still it creates a problem you can make an issue in this repo only after trying out the fix.
-
-```bash
-sudo su
-# Change to root user
-systemctl start pm2-USERNAME
-# The above start command will timeout
-ausearch -c 'systemd' --raw | audit2allow -M my-systemd
-semodule -i my-systemd.pp
-# NOTE: this is NOT a mistake, it has to be done twice
-systemctl start pm2-USERNAME
-# Again, the above start command will timeout
-ausearch -c 'systemd' --raw | audit2allow -M my-systemd
-semodule -i my-systemd.pp
-systemctl start pm2-USERNAME
-# Finally the above start command will start the pm2 service, and verify it with
-systemctl status pm2-USERNAME
-# sudo reboot
-```
-
 ### NGINX as Reverse proxy
 
 - Install Nginx (make sure epel-release is already installed, though already done above)
@@ -338,8 +356,6 @@ systemctl status pm2-USERNAME
 ```bash
 dnf install nginx
 ```
-
-<!-- Todo: -->
 
 - **Enable SELinux** for Nginx httpd_t (IMPORTANT)
 
@@ -371,53 +387,7 @@ http {
 
 - create `example.conf` file inside `/etc/nginx/conf.d/`
 
-- Sample server configutaion file
-
-```bash
-# example.conf
-
-server {
-    listen 80;
-    listen [::]:80;
-
-    # Replace example.com with your domain name
-    server_name example.com www.example.com;
-
-    ######## enable gzip ########
-    # To enable gzip include the following block (recommended)
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 256;
-    gzip_proxied any;
-    gzip_buffers 16 8k;
-    gzip_comp_level 6;
-    gzip_http_version 1.1;
-    gzip_types
-        text/xml application/xml application/atom+xml application/rss+xml application/xhtml+xml image/svg+xml
-        text/javascript application/javascript application/x-javascript
-        text/x-json application/json application/x-web-app-manifest+json
-        text/css text/plain text/x-component
-        font/opentype application/x-font-ttf application/vnd.ms-fontobject
-        image/x-icon;
-    gzip_disable "MSIE [1-6]\.";
-    ################################
-
-    proxy_set_header Host $http_host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-    ######## Reverse proxy setup ########
-    location / {
-        proxy_pass http://localhost:3000/;
-    }
-
-    # Only if including webhooks as explained below from https://github.com/adnanh/webhook
-    ######## Webhook Reverse proxy ########
-    location /webhooks/ {
-      proxy_pass http://localhost:9000/hooks/
-    }
-}
-```
+- Sample server configutaion file are present in templates folder.
 
 ### SSL certificates using certbot
 
@@ -468,7 +438,7 @@ https://github.com/adnanh/webhook
 First create a webhook from repository, is is located under settings of the repo.
 _settings → webhook → add webhook_
 
-- add a payload url of your choice
+- add a payload url of your choice (https://example.com/hooks/redeploy-app)
 - any secret
 - `content-type` to: `application/json`
 - just the push event
@@ -507,67 +477,22 @@ touch redeploy.sh hooks.json
 chmod +x redeploy.sh
 ```
 
-3. Content of `redeploy.sh` (you can modify according to your needs)
+3. Redeploy script `redeploy.sh` is present in templates folder (you can modify according to your needs)
 
-```sh
-#!/bin/bash
-git pull -f origin master   #(OR git pull --ff-only)
-yarn install                #(OR npm install)
-pm2 reload all
-pm2 save
-```
+4. `hooks.json` is present in the `templates` folder of this repo (you can modify according to your needs but read documentation)
 
-4. Content of `hooks.json` (you can modify according to your needs but read documentation)
+- Detailed Reference @ https://github.com/adnanh/webhook/blob/master/docs/Hook-Definition.md
 
-```json
-/*
-hooks.json
+  1. id: This is the endpoint used in url, you can change if you want or keep it as is
+     Note: In our case when creating a webhook on Github, the webhook url would look something like this:
+     https://servername.com/webhooks/github-push
+  2. execute-command: Full Path to the redeploy script (not with ~, example: /home/killer/webhooks/redeploy.sh)
+  3. command-working-directory: Full Path to the working directory, where this redeploy script needs to be executed, in case of a nodejs application, it should be the place where package.json is placed.
 
-Detailed Reference @ https://github.com/adnanh/webhook/blob/master/docs/Hook-Definition.md
-1. id: This is the endpoint used in url, you can change if you want or keep it as is
-Note: In our case when creating a webhook on Github, the webhook url would look something like this:
-https://servername.com/webhooks/github-push
-2. execute-command: Full Path to the redeploy script (not with ~, example: /home/killer/webhooks/redeploy.sh)
-3. command-working-directory: Full Path to the working directory, where this redeploy script needs to be executed, in case of a nodejs application, it should be the place where package.json is placed.
-*/
-[
-  {
-    "id": "github-push",
-    "execute-command": "/home/killer/webhooks/redeploy.sh",
-    "command-working-directory": "/home/killer/application",
-    "response-message": "Deployed...",
-    "include-command-output-in-response": true,
-    "include-command-output-in-response-on-error": true,
-    "parse-parameters-as-json": true,
-    "trigger-rule": {
-      //If you don't understand just leave it as is, and ONLY change SOME_SUPER_SECRET_FROM_GITHUB_WHILE_CREATING_WEBHOOK, and only specify the branch name to deploy
-      "and": [
-        {
-          "match": {
-            "type": "payload-hmac-sha256",
-            "secret": "SOME_SUPER_SECRET_FROM_GITHUB_WHILE_CREATING_WEBHOOK",
-            "parameter": {
-              "source": "header",
-              "name": "X-Hub-Signature-256"
-            }
-          }
-        },
-        {
-          "match": {
-            "type": "value",
-            // Only redeploy on a push to the master branch. Change this value if your branch has a different name
-            "value": "refs/heads/master",
-            "parameter": {
-              "source": "payload",
-              "name": "ref"
-            }
-          }
-        }
-      ]
-    }
-  }
-]
-```
+  Refer hooks.json in templates folder
+
+  1. If you don't understand just leave it as is, and ONLY change SOME_SUPER_SECRET_FROM_GITHUB_WHILE_CREATING_WEBHOOK, and only specify the branch name to deploy
+  2. Only redeploy on a push to the master branch. Change this value if your branch has a different name
 
 5. Try your hook is testing mode
 
@@ -589,6 +514,8 @@ webhook -hooks hooks.json -hotreload -verbose -ip "127.0.0.1" -http-methods post
   - `sudo systemctl start webhook.service` (starts the service)
   - `sudo systemctl enable webhook.service` (Enable, so that service is auto-started on reboot)
   - `sudo systemctl status webhook.service` (Check status, and make sure its running and enabled)
+- If the service is NOT active, it is due to selinux, use the command below and troubleshoot, and it will provide you with details as to what to execute and IT WILL WORK.
+  - `journalctl -xe`
 - In case you want to reload/restart/stop/disbale service:
   - `sudo systemctl reload webhook.service`
   - `sudo systemctl restart webhook.service`
@@ -614,11 +541,6 @@ ExecStart=/usr/local/bin/webhook -verbose -hotreload -hooks /home/killer/webhook
 [Install]
 WantedBy=multi-user.target
 ```
-
-<!-- - For CANNOT SET LOCALE _ERROR_, login as **root** user for setting locale `utf-8`
-
-  - `vim /etc/environment`
-  - add these lines - LANG=en_US.utf-8 - LC_ALL=en_US.utf-8 -->
 
 ### Fail2Ban
 
@@ -677,6 +599,8 @@ sudo fail2ban-client set sshd banip x.x.x.x
 ### Firewalld commands
 
 ```bash
+sudo dnf install firewalld
+
 sudo systemctl start firewalld
 sudo systemctl enable firewalld
 
@@ -705,10 +629,6 @@ sudo firewall-cmd --remove-service http --zone public
 firewall-cmd --get-default-zone
 sudo firewall-cmd --zone=public --add-port=3000/tcp
 sudo firewall-cmd --zone=public --remove-port=3000/tcp
-
-
-# public
-
 ```
 
 ## Timezones and NTP
@@ -767,8 +687,33 @@ systemctl list-unit-files
 systemctl --type=service
 ```
 
-## For Nodejs Express Applications always disable "x-powered-by" response header
+## For Nodejs Express Applications always disable "x-powered-by" response header inside `app.js`
 
 ```bash
 app.disable('x-powered-by');
 ```
+
+## Change default SSH Port
+
+We are going to change the default SSH port (i.e. 22) to something else like 2607
+
+```bash
+# change to root
+sudo su
+# IMPORTANT: First add port to firewall and then reload firewall
+firewall-cmd --add-port=2607/tcp --zone=public --permanent
+firewall-cmd --reload
+#Edit this file
+vim /etc/ssh/sshd_config
+# Find commented "Port 22" line and change to
+PORT 2607
+# For SELinux systems use the command below (change port accordingly)
+semanage port -a -t ssh_port_t -p tcp 2607
+systemctl reload sshd
+```
+
+### Debugging and Errors
+
+- For CANNOT SET LOCALE _ERROR_, login as **root** user for setting locale `utf-8`
+  - `vim /etc/environment`
+  - add these lines - LANG=en_US.utf-8 - LC_ALL=en_US.utf-8

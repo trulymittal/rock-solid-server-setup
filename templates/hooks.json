@@ -1,12 +1,9 @@
 [
   {
-    "id": "github-push",
+    "id": "redeploy-app",
     "execute-command": "/home/killer/webhooks/redeploy.sh",
     "command-working-directory": "/home/killer/application",
     "response-message": "Deployed...",
-    "include-command-output-in-response": true,
-    "include-command-output-in-response-on-error": true,
-    "parse-parameters-as-json": true,
     "trigger-rule": {
       "and": [
         {
