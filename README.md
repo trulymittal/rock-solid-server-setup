@@ -672,3 +672,15 @@ systemctl reload sshd
 - For CANNOT SET LOCALE _ERROR_, login as **root** user for setting locale `utf-8`
   - `vim /etc/environment`
   - add these lines - LANG=en_US.utf-8 - LC_ALL=en_US.utf-8
+
+### Author
+
+- [**Truly Mittal**](https://trulymittal.com)
+
+### Contribute
+
+You can fork this repo and send me a PR.
+
+### License
+
+This project is licensed under the MIT License.
