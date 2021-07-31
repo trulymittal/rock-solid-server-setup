@@ -506,7 +506,7 @@ webhook -hooks hooks.json -hotreload -verbose -ip "127.0.0.1" -http-methods post
 
 - create a file called `webhook.service` inside `/etc/systemd/system`
 - change permission of file webhook.service to 0644 `chmod 644 webhook.service`
-- copy the contents from the following sample template below
+- copy the contents from the `webhook.service` file from the templates folder
   - NOTE:
     - **killer** with the name of user who starts this service, can be USERNAME of logged in ssh user
     - /home/killer/webhooks/hooks.json this is my path, provide a complete path to your hooks.json created above
@@ -522,26 +522,6 @@ webhook -hooks hooks.json -hotreload -verbose -ip "127.0.0.1" -http-methods post
   - `sudo systemctl stop webhook.service`
   - `sudo systemctl disable webhook.service`
 
-```service
-# webhook.service
-
-[Unit]
-Description= Github Webhook
-Documentation=https://github.com/adnanh/webhook
-After=network.target
-StartLimitIntervalSec=0
-
-[Service]
-Type=simple
-User=killer
-Restart=on-failure
-RestartSec=5
-ExecStart=/usr/local/bin/webhook -verbose -hotreload -hooks /home/killer/webhooks/hooks.json -port 9000 -ip "127.0.0.1" -http-methods post
-
-[Install]
-WantedBy=multi-user.target
-```
-
 ### Fail2Ban
 
 ```bash
@@ -555,32 +535,7 @@ tail -f /var/log/secure
 grep 'sshd.*Failed password for' /var/log/secure
 ```
 
-Configure Fail2ban settings, create or edit the `/etc/fail2ban/jail.d/jail-sshd.conf` file using a text editor such as vi/vim or nano/emacs, with the content below:
-
-```
-[DEFAULT]
-# Ban IP/hosts for 24 hour ( 24h*3600s = 86400s):
-bantime = 86400
-
-# An ip address/host is banned if it has generated "maxretry" during the last "findtime" seconds.
-findtime = 600
-maxretry = 3
-
-# "ignoreip" can be a list of IP addresses, CIDR masks or DNS hosts. Fail2ban
-# will not ban a host which matches an address in this list. Several addresses
-# can be defined using space (and/or comma) separator. For example, add your
-# static IP address that you always use for login such as 103.1.2.3
-#ignoreip = 127.0.0.1/8 ::1 103.1.2.3
-
-# Call iptables to ban IP address
-banaction = iptables-multiport
-
-# Enable sshd protection
-[sshd]
-enabled = true
-```
-
-save and exit file, and reload fail2ban
+Configure Fail2ban settings, create or edit the `/etc/fail2ban/jail.d/jail-sshd.conf` file using a text editor such as vi/vim or nano/emacs, with the contents from file `jail-sshd.conf` inside templated folder, save and exit file, and reload fail2ban
 
 ```bash
 sudo systemctl reload fail2ban
