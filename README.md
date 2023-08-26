@@ -116,6 +116,14 @@ dnf install epel-release
 dnf upgrade
 ```
 
+#### For Amazon Linux 2023 (If you are using AWS EC2 & Facing issues with epel-release)
+
+```bash
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+sudo rpm -ihv --nodeps ./epel-release-latest-8.noarch.rpm
+dnf install epel-release
+```
+
 ### Start and install automatic updates
 
 ```bash
