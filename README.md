@@ -1,16 +1,5 @@
 # Production ready server setup.
 
-## Creating a Linux instance
-
-To create an instance, I will be using Digital Ocean (DO) as its UI is simple and clean to use. In DO world they are called droplets. Though you can use AWS EC2, Linoe, Vultr, etc... whatever you like.
-
-If you dont have an account on DO then use the link (https://m.do.co/c/3208f08b3324) to get 100$ credit to get started.
-
-## Youtube tutorial
-
-Before you continue, if you wanna learn in depth that what each of the stuff does then you can watch my youtube playlist for the same setup. There might be something more than this.
-[**YouTube - Rock solid Server setup tutorial**](https://www.youtube.com/playlist?list=PLdHg5T0SNpN38gy5xZ0PVEaDdZXlPkgP9)
-
 ## Generate a SSH key (if not already done)
 
 Open a terminal and run the following command
@@ -114,6 +103,14 @@ Once again, it will take sometime, so sit back relax and have a second cup of te
 ```bash
 dnf install epel-release
 dnf upgrade
+```
+
+#### For Amazon Linux 2023 (If you are using AWS EC2 & Facing issues with epel-release)
+
+```bash
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+sudo rpm -ihv --nodeps ./epel-release-latest-8.noarch.rpm
+dnf install epel-release
 ```
 
 ### Start and install automatic updates
